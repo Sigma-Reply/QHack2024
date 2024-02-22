@@ -37,9 +37,9 @@ class BS():
 
         if solver=="CN":
             if callable(sigma):
-                return self.CrankNicolsonTimeDep(arg[0],sigma,T)
+                return self.CrankNicolsonTimeDep(sigma,T,**kwargs)
             else:
-                return self.CrankNicolson(arg[0],sigma,T)
+                return self.CrankNicolson(sigma,T,**kwargs)
         elif solver=="QC":
             return self.QC(T, **kwargs)
             # if len(arg)==0:
@@ -83,7 +83,7 @@ class BS():
         ST = -S_*stats.norm.cdf(-d1) + self.K*np.exp(-self.r*(t_))*stats.norm.cdf(-d2)
         return ST
 
-    def CrankNicolson(self, Nt,sigma,T):
+    def CrankNicolson(self, sigma,T, Nt):
         Nx = self.N//2
         r = self.r
         K = self.K
@@ -119,7 +119,7 @@ class BS():
 
         return V
 
-    def CrankNicolsonTimeDep(self, Nt,sigma,T):
+    def CrankNicolsonTimeDep(self,sigma,T, Nt):
 
         Nx = self.N//2
         r = self.r
