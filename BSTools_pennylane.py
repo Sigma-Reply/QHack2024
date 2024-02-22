@@ -258,6 +258,7 @@ class BS():
 
         self.wire = list(np.flip(range(n)))
         self.StatePreparation(self.n,k)
+        # qml.AmplitudeEmbedding(init_state, list(np.flip(np.arange(n+2))))
 
         qml.QFT(list(np.flip(np.arange(n))))
 
@@ -453,7 +454,6 @@ class BS():
                     ratio=1
                 thetas.append(2*np.arccos(np.sqrt(ratio)))
             else:
-                # print('else')
                 if use_inv_matrix:
                     thetas.append(0)
                     
