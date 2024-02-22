@@ -47,7 +47,7 @@ class BS():
             # else:
             #     return self.QC(T, arg[0])
         elif solver=="exactp":
-            return self.exactp(T, sigma, **kwargs)
+            return self.exactp(T, sigma, **kwargs)[self.N//2:]
         elif solver=="exact":
             return self.exact(T, sigma)[0,:]
 
@@ -166,7 +166,7 @@ class BS():
         n = self.n
         N = 2**n
         
-        sim = self.Circuit_node(self.get_coef_H(T),self.get_coef_A(T), k, M, order)
+        sim = self.Circuit_node(self.get_coef_H(T),self.get_coef_A(T), k, M, order)[N//2:N]
         return sim
 
 
@@ -283,33 +283,39 @@ class BS():
             ind = ind[permutation]
             coef = coef[permutation]
 
-            i = 0
-            for k in ind:
-                k_bin = np.array(list(np.binary_repr(k,n)), dtype=int)
-                if k%2==0:
-                    self.Cartan(k_bin,coef[i], antihermitian=True)
-                else:
-                    self.Cartan(k_bin,-coef[i], antihermitian=False)
-                i += 1
-            # k_bin_list = [np.array(list(np.binary_repr(k,n)), dtype=int) for k in ind]
-            # self.Cartan_list(k_bin_list, coef)
+            # i = 0
+            # for k in ind:
+            #     k_bin = np.array(list(np.binary_repr(k,n)), dtype=int)
+            #     if k%2==0:
+            #         self.Cartan(k_bin,coef[i], antihermitian=True)
+            #     else:
+            #         self.Cartan(k_bin,-coef[i], antihermitian=False)
+            #     i += 1
+            k_bin_list = [np.array(list(np.binary_repr(k,n)), dtype=int) for k in ind]
+            self.Cartan_list(k_bin_list, coef)
 
         else:
             ind_H = np.arange(1,N,2)
-            I = np.flip(np.argsort(np.abs(coef_H)))
+            IH = np.flip(np.argsort(np.abs(coef_H)))
 
-            for i in range(m_H):
-                k = ind_H[I[i]]
-                k_bin = np.array(list(np.binary_repr(k,n)), dtype=int)
-                self.Cartan(k_bin,-coef_H[I[i]])
+            # for i in range(m_H):
+            #     k = ind_H[I[i]]
+            #     k_bin = np.array(list(np.binary_repr(k,n)), dtype=int)
+            #     self.Cartan(k_bin,-coef_H[I[i]])
 
             ind_A = np.arange(0,N,2)
-            I = np.flip(np.argsort(np.abs(coef_A)))
+            IA = np.flip(np.argsort(np.abs(coef_A)))
 
-            for i in range(m_A):
-                k = ind_A[I[i]]
-                k_bin = np.array(list(np.binary_repr(k,n)), dtype=int)
-                self.Cartan(k_bin,coef_A[I[i]], antihermitian=True)
+            # for i in range(m_A):
+            #     k = ind_A[I[i]]
+            #     k_bin = np.array(list(np.binary_repr(k,n)), dtype=int)
+            #     self.Cartan(k_bin,coef_A[I[i]], antihermitian=True)
+            
+            coef = np.concatenate((np.array(coef_H)[IH[:m_H]], np.array(coef_A)[IA[:m_A]]))
+            ind = np.concatenate((ind_H[IH[:m_H]], ind_A[IA[:m_A]]))
+            
+            k_bin_list = [np.array(list(np.binary_repr(k,n)), dtype=int) for k in ind]
+            self.Cartan_list(k_bin_list, coef)
 
 
 
@@ -320,7 +326,52 @@ class BS():
         
         return qml.probs(list(np.flip(np.arange(n+2))))
     
+    
+    
+    def Cartan_list(self, bit_str_list, beta_list):
+        n = self.n
+        
+        for i in range(len(beta_list)):
+            if bit_str_list[i][-1]: # Hermitian
+                beta_list[i] *= -1
+                bit_str_list[i] = np.append(bit_str_list[i],0)
+            else: # Antihermitian
+                bit_str_list[i] = np.append(bit_str_list[i],1)
+                
+        # First rotation
+        bit_str = bit_str_list[0]
+        beta = beta_list[0]
 
+        M = len(bit_str)
+        for i in range(M):
+            if bit_str[i]:
+                qml.CNOT([i,n+1])
+
+        qml.RZ(-2*beta,n+1)
+        
+                
+        for i in range(1,len(beta_list)):
+            bit_str_prev = bit_str_list[i-1]
+            bit_str_next = bit_str_list[i]
+            bit_str = np.abs(bit_str_prev-bit_str_next)
+            beta = beta_list[i]
+            
+            M = len(bit_str)
+            for i in range(M):
+                if bit_str[i]:
+                    qml.CNOT([i,n+1])
+                    
+            qml.RZ(-2*beta,n+1)
+            
+        # Last rotation
+        bit_str = bit_str_list[-1]
+
+        M = len(bit_str)
+        for i in range(M):
+            if bit_str[i]:
+                qml.CNOT([i,n+1])
+                
+                
     
     def Cartan(self, bit_str, beta, antihermitian=False):
         n = self.n
